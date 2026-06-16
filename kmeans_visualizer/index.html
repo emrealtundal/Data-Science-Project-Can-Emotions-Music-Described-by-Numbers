@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ── Page Header ── -->
+    <header>
+        <div class="header-content">
+            <h1>K-Means Clustering</h1>
+            <p>An interactive step-by-step visualization for learning how K-Means works</p>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- ── Controls Sidebar ── -->
+        <aside class="controls">
+
+            <!-- K Slider -->
+            <div class="control-section">
+                <label class="control-label" for="k-slider">Number of Clusters (K)</label>
+                <div class="slider-row">
+                    <input type="range" id="k-slider" min="2" max="6" value="3">
+                    <span class="k-badge" id="k-value">3</span>
+                </div>
+                <div class="slider-ticks">
+                    <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="control-section buttons-section">
+                <button class="btn btn-secondary" id="btn-regenerate">&#8635; Regenerate Points</button>
+                <button class="btn btn-primary"   id="btn-step">&#9654; Run Step</button>
+                <button class="btn btn-accent"    id="btn-run">&#9193; Run Full K-Means</button>
+            </div>
+
+            <!-- Status / Step Label -->
+            <div class="control-section status-section">
+                <div class="phase-badge" id="phase-badge">Ready</div>
+                <div class="step-label"  id="step-label">Press "Run Step" to begin</div>
+                <div class="iter-count"  id="iteration-count">Iteration: 0</div>
+                <div class="status-detail" id="status-detail">
+                    Centroids are placed at random starting positions.
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="control-section legend-section">
+                <div class="legend-title">Legend</div>
+                <div id="legend"></div>
+                <div class="legend-item centroid-row">
+                    <span class="centroid-icon">&#10005;</span> Centroid
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- ── Canvas Area ── -->
+        <section class="canvas-area">
+            <canvas id="canvas"></canvas>
+        </section>
+
+    </main>
+
+    <!-- ── Explanation Panel ── -->
+    <section class="explanation">
+        <h2>How K-Means Works</h2>
+        <div class="cards">
+
+            <div class="card">
+                <div class="card-icon">K</div>
+                <h3>What is K?</h3>
+                <p>
+                    K is the number of clusters you want to find in your data.
+                    You choose K before the algorithm starts. Each cluster groups
+                    data points that are close to each other in space.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">&#10005;</div>
+                <h3>What is a Centroid?</h3>
+                <p>
+                    A centroid (shown as &#10005;) is the center of a cluster. It begins at a
+                    random position and is updated each iteration to sit at the
+                    average position of all points assigned to it.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">&#8635;</div>
+                <h3>Each Iteration</h3>
+                <p>
+                    <strong>Step 1:</strong> Assign each point to its nearest
+                    centroid using Euclidean distance.<br><br>
+                    <strong>Step 2:</strong> Move each centroid to the average
+                    (x&#772;, y&#772;) of its assigned points.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">?</div>
+                <h3>Why K Matters</h3>
+                <p>
+                    Too few clusters miss real structure. Too many may overfit
+                    noise. The <em>Elbow Method</em> plots variance vs K —
+                    the "elbow" point is often the best K for your data.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

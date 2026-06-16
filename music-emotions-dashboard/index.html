@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Emotion Analytics Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">♫</span>
+      <span class="logo-text">Music Emotion<br><small>Analytics</small></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">▦</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" data-page="correlation">
+        <span class="nav-icon">⟷</span> Correlation Explorer
+      </a>
+      <a href="#" class="nav-item" data-page="forest">
+        <span class="nav-icon">⧉</span> Random Forest Insights
+      </a>
+      <a href="#" class="nav-item" data-page="kmeans">
+        <span class="nav-icon">◎</span> K-Means Visualization
+      </a>
+      <a href="#" class="nav-item" data-page="recommendation">
+        <span class="nav-icon">♪</span> Recommendation Demo
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <p>Data Science Project</p>
+      <p class="footer-sub">SpotifyFeatures.csv · 2025</p>
+      <div class="dataset-badge" id="sidebar-dataset-badge" style="display:none">
+        <span class="badge-dot"></span><span id="sidebar-badge-text">Dataset loaded</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN CONTENT ══ -->
+  <main class="main-content">
+
+    <!-- ════════════════════════════════════
+         PAGE: Dashboard
+    ════════════════════════════════════ -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Music Emotion Analytics · Overview</p>
+      </div>
+
+      <!-- CSV Upload Card -->
+      <div class="card upload-card" id="upload-card">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Load SpotifyFeatures.csv</div>
+          <div class="upload-sub">Click to browse or drag &amp; drop the dataset file here</div>
+          <input type="file" id="csv-input" accept=".csv" style="display:none" />
+          <button class="btn btn-primary" id="upload-btn">Choose File</button>
+        </div>
+        <div class="load-status" id="load-status" style="display:none">
+          <div class="load-spinner"></div>
+          <div class="load-msg" id="load-msg">Reading file…</div>
+        </div>
+        <div class="load-done" id="load-done" style="display:none">
+          <span class="load-done-icon">✓</span>
+          <span id="load-done-text">Dataset ready</span>
+          <button class="btn btn-sm" id="btn-reload-csv">Load Different File</button>
+        </div>
+      </div>
+
+      <!-- Metric Cards (IDs allow JS updates after CSV load) -->
+      <div class="metric-grid" id="metric-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="m-songs">232,725</div>
+          <div class="metric-label">Songs Analyzed</div>
+          <div class="metric-sub" id="m-songs-sub">SpotifyFeatures.csv</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-genres">27</div>
+          <div class="metric-label">Music Genres</div>
+          <div class="metric-sub" id="m-genres-sub">Across all clusters</div>
+        </div>
+        <div class="metric-card highlight">
+          <div class="metric-value">0.67</div>
+          <div class="metric-label">Random Forest R²</div>
+          <div class="metric-sub">Best model performance</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">Danceability</div>
+          <div class="metric-label">Strongest Feature</div>
+          <div class="metric-sub">Importance: 0.343</div>
+        </div>
+      </div>
+
+      <!-- Dynamic dataset stats — revealed after CSV load -->
+      <div class="metric-grid three-col" id="dynamic-stats" style="display:none">
+        <div class="metric-card">
+          <div class="metric-value" id="m-avg-valence">—</div>
+          <div class="metric-label">Avg Valence</div>
+          <div class="metric-sub">From loaded dataset</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-avg-energy">—</div>
+          <div class="metric-label">Avg Energy</div>
+          <div class="metric-sub">From loaded dataset</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="m-avg-dance">—</div>
+          <div class="metric-label">Avg Danceability</div>
+          <div class="metric-sub">From loaded dataset</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Research Question</h2>
+        <p class="research-question">
+          "Can numerical audio features describe or predict emotional positivity in music?"
+        </p>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2 class="card-title">About This Project</h2>
+          <p class="body-text">
+            This project analyzes the Spotify audio feature dataset containing
+            <strong>232,725 songs</strong> across <strong>27 genres</strong>.
+            We explored whether low-level numerical audio descriptors — such as
+            danceability, energy, tempo, and loudness — can explain or predict
+            <strong>valence</strong>, Spotify's measure of musical positivity.
+          </p>
+          <p class="body-text" style="margin-top:12px">
+            Using <strong>correlation analysis</strong>, <strong>linear regression</strong>,
+            <strong>Random Forest regression</strong>, and <strong>K-Means clustering</strong>,
+            we found that audio features can meaningfully describe emotion, but the
+            relationship is non-linear and genre-dependent.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Key Findings</h2>
+          <ul class="findings-list">
+            <li><span class="bullet green">●</span> Danceability is the strongest predictor of valence (r = 0.55)</li>
+            <li><span class="bullet green">●</span> Random Forest R² = 0.67, outperforming Linear Regression (R² = 0.41)</li>
+            <li><span class="bullet yellow">●</span> High energy does not always mean high valence</li>
+            <li><span class="bullet yellow">●</span> K-Means revealed distinct emotional clusters in music</li>
+            <li><span class="bullet red">●</span> Tempo has a weak correlation with valence (r = 0.13)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Genre Emotion Map — static cards replaced dynamically after CSV load -->
+      <div class="card">
+        <div class="card-title-row">
+          <h2 class="card-title" style="margin-bottom:0">Genre Emotion Profiles</h2>
+          <span class="data-source-tag" id="genre-map-source">Static preview</span>
+        </div>
+        <p class="body-text" style="margin:8px 0 16px">
+          Average audio feature values per genre. Upload the dataset to see all 27 genres computed live.
+        </p>
+        <div class="genre-grid" id="genre-grid">
+          <!-- Populated by JS (static fallback on load, live data after CSV) -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════
+         PAGE: Correlation Explorer
+    ════════════════════════════════════ -->
+    <section class="page" id="page-correlation">
+      <div class="page-header">
+        <h1>Correlation Explorer</h1>
+        <p class="page-subtitle">Pearson correlations between audio features and Valence</p>
+      </div>
+
+      <div class="two-col">
+        <div class="card" style="flex:1.4">
+          <div class="card-title-row">
+            <h2 class="card-title" style="margin-bottom:0">Feature–Valence Correlations</h2>
+            <span class="data-source-tag" id="corr-source-tag">Static values</span>
+          </div>
+          <p class="body-text" style="margin:10px 0 20px">
+            Valence measures perceived emotional positivity (0 = negative, 1 = positive).
+            Upload the dataset to compute correlations live from the sample.
+          </p>
+          <div class="corr-chart" id="corr-chart"></div>
+          <div class="corr-legend">
+            <span class="legend-dot positive"></span> Positive correlation
+            <span class="legend-dot negative" style="margin-left:16px"></span> Negative correlation
+          </div>
+        </div>
+
+        <div class="card" style="flex:0.8">
+          <h2 class="card-title">Interpretation</h2>
+          <div class="insight-box green">
+            <div class="insight-title">Danceability (r ≈ 0.55)</div>
+            <p>Strongest positive predictor. More danceable tracks tend to feel happier.</p>
+          </div>
+          <div class="insight-box yellow">
+            <div class="insight-title">Energy (r ≈ 0.44)</div>
+            <p>Moderate positive link, but many high-energy songs (e.g., metal, EDM) have low valence.</p>
+          </div>
+          <div class="insight-box gray">
+            <div class="insight-title">Tempo (r ≈ 0.13)</div>
+            <p>Weak correlation. Speed alone doesn't determine emotional tone.</p>
+          </div>
+          <div class="insight-box red">
+            <div class="insight-title">Acousticness (r ≈ −0.33)</div>
+            <p>Acoustic tracks tend to have lower valence — often tied to introspective genres.</p>
+          </div>
+          <div class="callout">
+            <strong>Key Takeaway:</strong> Danceability showed a stronger relationship with Valence
+            than Energy, challenging the assumption that "louder = happier".
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Why Correlations Matter</h2>
+        <p class="body-text">
+          Correlation analysis was our first step in understanding which features are worth modeling.
+          While correlation doesn't imply causation, features with higher |r| values are more likely
+          to contribute to a predictive model. This guided feature selection for both Linear Regression
+          and Random Forest models.
+        </p>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════
+         PAGE: Random Forest Insights
+    ════════════════════════════════════ -->
+    <section class="page" id="page-forest">
+      <div class="page-header">
+        <h1>Random Forest Insights</h1>
+        <p class="page-subtitle">Model comparison and feature importance analysis</p>
+      </div>
+
+      <div class="metric-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;">
+        <div class="metric-card">
+          <div class="metric-value" style="color: var(--text-muted)">0.41</div>
+          <div class="metric-label">Linear Regression R²</div>
+          <div class="metric-sub">Baseline model</div>
+          <div class="model-bar-track"><div class="model-bar-fill" style="width:41%;background:var(--yellow)"></div></div>
+        </div>
+        <div class="metric-card highlight">
+          <div class="metric-value">0.67</div>
+          <div class="metric-label">Random Forest R²</div>
+          <div class="metric-sub">Best model — 63% improvement</div>
+          <div class="model-bar-track"><div class="model-bar-fill" style="width:67%;background:var(--green)"></div></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card" style="flex:1.4">
+          <h2 class="card-title">Feature Importance (Random Forest)</h2>
+          <p class="body-text" style="margin-bottom:20px">
+            Feature importance indicates how much each audio feature contributed to the model's predictions.
+            Higher values mean the feature had more influence on predicting valence.
+          </p>
+          <div class="corr-chart" id="fi-chart"></div>
+        </div>
+
+        <div class="card" style="flex:0.8">
+          <h2 class="card-title">Why Random Forest Wins</h2>
+          <p class="body-text">
+            Linear Regression assumes a straight-line relationship between features and valence.
+            But emotional patterns in music are non-linear — a very danceable track might be joyful,
+            but at extreme tempos it could feel frantic rather than happy.
+          </p>
+          <p class="body-text" style="margin-top:12px">
+            <strong>Random Forest</strong> builds many decision trees and averages their predictions,
+            capturing these complex, non-linear interactions automatically.
+          </p>
+          <div class="callout" style="margin-top:20px">
+            <strong>R² explained:</strong> An R² of 0.67 means the model explains
+            <strong>67% of the variance</strong> in valence — a strong result for
+            emotional prediction from raw audio features alone.
+          </div>
+          <div class="vs-box">
+            <div class="vs-item">
+              <div class="vs-label">Linear Regression</div>
+              <div class="vs-detail">R² = 0.41</div>
+              <div class="vs-note">Assumes linearity</div>
+            </div>
+            <div class="vs-arrow">→</div>
+            <div class="vs-item highlight-vs">
+              <div class="vs-label">Random Forest</div>
+              <div class="vs-detail">R² = 0.67</div>
+              <div class="vs-note">Captures non-linearity</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════
+         PAGE: K-Means Visualization
+    ════════════════════════════════════ -->
+    <section class="page" id="page-kmeans">
+      <div class="page-header">
+        <h1>K-Means Visualization</h1>
+        <p class="page-subtitle">Interactive clustering demo using Danceability &amp; Energy</p>
+      </div>
+
+      <div class="two-col">
+        <div class="card" style="flex:1.5">
+          <h2 class="card-title">Interactive K-Means Demo</h2>
+          <div class="kmeans-controls">
+            <div class="control-row">
+              <label>Number of Clusters (K): <strong id="k-value">3</strong></label>
+              <input type="range" id="k-slider" min="2" max="6" value="3" />
+            </div>
+            <div class="btn-row">
+              <button class="btn" id="btn-regen">↺ Regenerate Points</button>
+              <button class="btn" id="btn-step">→ Run Step</button>
+              <button class="btn btn-primary" id="btn-run">▶ Run Full K-Means</button>
+            </div>
+          </div>
+          <canvas id="kmeans-canvas" width="540" height="380"></canvas>
+          <div class="kmeans-status" id="kmeans-status">Click "Run Full K-Means" to start clustering.</div>
+        </div>
+
+        <div class="card" style="flex:0.8">
+          <h2 class="card-title">How K-Means Works</h2>
+          <div class="steps-list">
+            <div class="step"><span class="step-num">1</span><div><strong>Choose K</strong><p>Select the number of clusters (groups) you want.</p></div></div>
+            <div class="step"><span class="step-num">2</span><div><strong>Place Centroids</strong><p>K random points are placed as initial cluster centers (★).</p></div></div>
+            <div class="step"><span class="step-num">3</span><div><strong>Assign Points</strong><p>Each data point is assigned to its nearest centroid by distance.</p></div></div>
+            <div class="step"><span class="step-num">4</span><div><strong>Update Centroids</strong><p>Each centroid moves to the mean position of its assigned points.</p></div></div>
+            <div class="step"><span class="step-num">5</span><div><strong>Repeat</strong><p>Steps 3–4 repeat until centroids stop moving (convergence).</p></div></div>
+          </div>
+          <div class="callout" style="margin-top:16px">
+            In our project, K-Means grouped songs into clusters like
+            <em>"high energy, low valence"</em> and
+            <em>"high danceability, high valence"</em> — revealing meaningful emotional segments.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════
+         PAGE: Recommendation Demo
+    ════════════════════════════════════ -->
+    <section class="page" id="page-recommendation">
+      <div class="page-header">
+        <h1>Recommendation Demo</h1>
+        <p class="page-subtitle">Personalized mood-based song discovery using audio feature similarity</p>
+      </div>
+
+      <!-- Dataset notice banner -->
+      <div class="reco-notice" id="reco-notice">
+        <span class="notice-icon">ℹ</span>
+        <span>No dataset loaded — showing curated mock results.
+          <a href="#" id="reco-go-upload">Go to Dashboard to upload SpotifyFeatures.csv</a>
+          for live recommendations from 232,725 songs.</span>
+      </div>
+
+      <!-- ── Wizard Card ── -->
+      <div class="card reco-wizard">
+        <h2 class="card-title">Build Your Recommendation Profile</h2>
+
+        <!-- Step 1: Mood -->
+        <div class="wizard-step">
+          <div class="step-header">
+            <span class="step-num">1</span>
+            <span class="step-title">Current Mood</span>
+          </div>
+          <div class="mood-grid" id="mood-select">
+            <button class="mood-btn active" data-mood="happy">😊 Happy</button>
+            <button class="mood-btn" data-mood="relaxed">😌 Relaxed</button>
+            <button class="mood-btn" data-mood="energetic">⚡ Energetic</button>
+            <button class="mood-btn" data-mood="dark">🌑 Dark / Intense</button>
+            <button class="mood-btn" data-mood="dance">🎉 Dance</button>
+            <button class="mood-btn" data-mood="melancholic">💙 Melancholic</button>
+            <button class="mood-btn" data-mood="focus">🎯 Focus</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Energy level -->
+        <div class="wizard-step">
+          <div class="step-header">
+            <span class="step-num">2</span>
+            <span class="step-title">Desired Energy Level</span>
+          </div>
+          <div class="level-grid" id="energy-select">
+            <button class="level-btn" data-level="low">🔅 Low</button>
+            <button class="level-btn active" data-level="medium">⚡ Medium</button>
+            <button class="level-btn" data-level="high">🔥 High</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Danceability -->
+        <div class="wizard-step">
+          <div class="step-header">
+            <span class="step-num">3</span>
+            <span class="step-title">Desired Danceability</span>
+          </div>
+          <div class="level-grid" id="dance-select">
+            <button class="level-btn" data-level="low">🪑 Low</button>
+            <button class="level-btn active" data-level="medium">🕺 Medium</button>
+            <button class="level-btn" data-level="high">💃 High</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Genre (populated from dataset) -->
+        <div class="wizard-step">
+          <div class="step-header">
+            <span class="step-num">4</span>
+            <span class="step-title">Genre Preference <span class="optional-tag">Optional</span></span>
+          </div>
+          <select id="genre-select" class="genre-dropdown">
+            <option value="">Any genre</option>
+          </select>
+        </div>
+
+        <!-- Step 5: Seed song search -->
+        <div class="wizard-step">
+          <div class="step-header">
+            <span class="step-num">5</span>
+            <span class="step-title">Seed Song <span class="optional-tag">Optional</span></span>
+          </div>
+          <p class="step-desc" id="seed-hint">
+            Type a track name from the loaded dataset. Recommendations will blend toward that song's profile.
+          </p>
+          <div class="seed-search-wrap">
+            <input type="text" id="seed-input" class="seed-input" placeholder="Search by track name…" autocomplete="off" />
+            <div class="autocomplete-list" id="autocomplete-list" style="display:none"></div>
+          </div>
+          <div class="seed-chip" id="seed-chip" style="display:none">
+            <span class="seed-chip-label" id="seed-chip-label"></span>
+            <button class="seed-chip-remove" id="seed-chip-remove">✕</button>
+          </div>
+        </div>
+
+        <!-- Target profile preview -->
+        <div class="wizard-step target-preview-step">
+          <div class="step-header" style="margin-bottom:10px">
+            <span class="step-num" style="background:var(--border);color:var(--text-muted)">⦿</span>
+            <span class="step-title">Target Profile</span>
+          </div>
+          <div class="feature-profile" id="target-profile-preview"></div>
+        </div>
+
+        <button class="btn btn-primary btn-find" id="btn-find">♪ Find Recommendations</button>
+      </div>
+
+      <!-- ── Results Area ── -->
+      <div id="reco-results-area" style="display:none">
+        <div class="results-header">
+          <h2 class="results-title">Top 10 Recommendations</h2>
+          <p class="page-subtitle" id="reco-result-subtitle"></p>
+        </div>
+        <div class="reco-grid" id="reco-grid"></div>
+      </div>
+
+      <!-- ── Spotify Explanation Panel ── -->
+      <div class="card spotify-explainer">
+        <h2 class="card-title">How This Compares to Real Spotify</h2>
+        <div class="two-col" style="margin-bottom:0">
+          <div>
+            <div class="explainer-badge prototype">This Prototype</div>
+            <ul class="explainer-list">
+              <li>Uses audio features only (valence, energy, danceability, tempo, acousticness, speechiness)</li>
+              <li>Weighted Euclidean distance similarity scoring</li>
+              <li>Mood → target audio profile mapping</li>
+              <li>Optional genre filter and seed song blending</li>
+              <li>No personalization — same query = same results</li>
+            </ul>
+          </div>
+          <div>
+            <div class="explainer-badge spotify">Real Spotify</div>
+            <ul class="explainer-list">
+              <li>Collaborative filtering using millions of user playlists</li>
+              <li>Listening history: plays, skips, repeat counts, saves</li>
+              <li>Natural language processing on song lyrics and reviews</li>
+              <li>Session context and time-of-day awareness</li>
+              <li>Deep learning embeddings of audio waveforms</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          This is an <strong>educational prototype</strong> demonstrating that even simple
+          audio feature distance scoring can surface musically coherent recommendations —
+          the same core insight that motivates content-based filtering in production systems.
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="card">
+        <div class="disclaimer">
+          <span class="disclaimer-icon">ℹ</span>
+          <p>
+            <strong>Prototype Note:</strong> Recommendations are computed using a weighted distance
+            formula over audio features from SpotifyFeatures.csv. Results are for educational
+            demonstration only and do not represent a live Spotify recommendation system.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
