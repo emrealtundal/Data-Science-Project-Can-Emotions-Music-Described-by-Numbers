@@ -23,7 +23,7 @@ let allGenres     = [];   // sorted unique genre strings
 let currentSeed   = null; // currently selected seed song object
 let dataLoaded    = false;
 
-const SAMPLE_SIZE = 230000;
+const SAMPLE_SIZE = 232725;
 
 // Target audio feature profiles per mood (all values 0–1; tempoNorm = tempo / 250)
 const MOOD_PROFILES = {
@@ -298,6 +298,9 @@ function onDatasetReady(totalRows) {
   // Update similar songs notice
   const similarNotice = document.getElementById('similar-notice');
   if (similarNotice) similarNotice.style.display = 'none';
+
+  // Refresh LR scatter points if the playground was already visited
+  if (lrInited) { lrRefreshPoints(); updateLRPlayground(); }
 }
 
 // ── UI helpers for upload states ──
@@ -1049,7 +1052,220 @@ function escHtml(str) {
 
 
 /* ══════════════════════════════════════════
-   9. FIND SIMILAR SONGS
+   9. LINEAR REGRESSION PLAYGROUND
+══════════════════════════════════════════ */
+
+const LR_COEFFS = { intercept: 0.12, danceability: 0.55, energy: 0.22, acousticness: -0.08 };
+
+let lrInited        = false;
+let lrScatterPoints = [];
+
+function initLinearRegression() {
+  if (!lrInited) {
+    lrInited = true;
+
+    const configs = [
+      ['lr-dance',    'lr-dance-val'],
+      ['lr-energy',   'lr-energy-val'],
+      ['lr-acoustic', 'lr-acoustic-val'],
+    ];
+    configs.forEach(([sId, vId]) => {
+      const el = document.getElementById(sId);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        document.getElementById(vId).textContent = parseFloat(el.value).toFixed(2);
+        updateLRPlayground();
+      });
+    });
+
+    const rfBtn = document.getElementById('lr-goto-rf');
+    if (rfBtn) rfBtn.addEventListener('click', () => navigateTo('forest-explorer'));
+  }
+
+  lrRefreshPoints();
+  updateLRPlayground();
+}
+
+function lrRefreshPoints() {
+  if (dataLoaded && dataset.length > 0) {
+    const step = Math.max(1, Math.floor(dataset.length / 450));
+    lrScatterPoints = [];
+    for (let i = 0; i < dataset.length && lrScatterPoints.length < 450; i += step) {
+      const s = dataset[i];
+      if (s.danceability != null && s.valence != null) {
+        lrScatterPoints.push({ danceability: s.danceability, valence: s.valence });
+      }
+    }
+  } else {
+    lrScatterPoints = generateLRMockPoints(350);
+  }
+}
+
+function generateLRMockPoints(n) {
+  let seed = 42;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 0xFFFFFFFF; };
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const d = rand();
+    const noise = (rand() - 0.5) * 0.32;
+    pts.push({ danceability: d, valence: Math.max(0, Math.min(1, 0.19 + 0.55 * d + noise)) });
+  }
+  return pts;
+}
+
+function getLRSliderValues() {
+  return {
+    dance:    parseFloat(document.getElementById('lr-dance')?.value    ?? 0.5),
+    energy:   parseFloat(document.getElementById('lr-energy')?.value   ?? 0.5),
+    acoustic: parseFloat(document.getElementById('lr-acoustic')?.value ?? 0.5),
+  };
+}
+
+function calcLRPrediction(dance, energy, acoustic) {
+  const raw = LR_COEFFS.intercept
+    + LR_COEFFS.danceability * dance
+    + LR_COEFFS.energy       * energy
+    + LR_COEFFS.acousticness * acoustic;
+  return Math.max(0, Math.min(1, raw));
+}
+
+function updateLRPlayground() {
+  const { dance, energy, acoustic } = getLRSliderValues();
+  const pred = calcLRPrediction(dance, energy, acoustic);
+
+  const predEl = document.getElementById('lr-pred-value');
+  if (predEl) predEl.textContent = pred.toFixed(2);
+
+  const totalEl = document.getElementById('lr-total-display');
+  if (totalEl) totalEl.textContent = pred.toFixed(2);
+
+  renderLRContributions(dance, energy, acoustic);
+  renderLRCanvas(dance, energy, acoustic);
+}
+
+function renderLRContributions(dance, energy, acoustic) {
+  const container = document.getElementById('lr-contrib-chart');
+  if (!container) return;
+
+  const terms = [
+    { label: 'Intercept',    value: LR_COEFFS.intercept,               color: '#a0a0a0' },
+    { label: 'Danceability', value: LR_COEFFS.danceability * dance,     color: 'var(--green)'  },
+    { label: 'Energy',       value: LR_COEFFS.energy       * energy,    color: 'var(--yellow)' },
+    { label: 'Acousticness', value: LR_COEFFS.acousticness * acoustic,  color: 'var(--red)'    },
+  ];
+
+  const maxAbs = 0.58;
+
+  container.innerHTML = terms.map(t => {
+    const isNeg  = t.value < 0;
+    const pct    = (Math.abs(t.value) / maxAbs * 100).toFixed(1);
+    const sign   = isNeg ? '−' : '+';
+    const barClr = isNeg ? 'var(--red)' : t.color;
+    return `
+      <div class="lr-contrib-row">
+        <div class="lr-contrib-label">${t.label}</div>
+        <div class="lr-contrib-bar-wrap">
+          <div class="lr-contrib-bar" style="width:${pct}%;background:${barClr}"></div>
+        </div>
+        <div class="lr-contrib-val" style="color:${barClr}">${sign}${Math.abs(t.value).toFixed(3)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderLRCanvas(dance, energy, acoustic) {
+  const canvas = document.getElementById('lr-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const PAD = { top: 24, right: 20, bottom: 50, left: 54 };
+  const pW = W - PAD.left - PAD.right;
+  const pH = H - PAD.top  - PAD.bottom;
+
+  const cx = d => PAD.left + d * pW;
+  const cy = v => PAD.top  + (1 - v) * pH;
+
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1e1e1e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    ctx.beginPath(); ctx.moveTo(cx(i*0.2), PAD.top);    ctx.lineTo(cx(i*0.2), PAD.top+pH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD.left,  cy(i*0.2));  ctx.lineTo(PAD.left+pW, cy(i*0.2)); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#3a3a3a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top);       ctx.lineTo(PAD.left, PAD.top+pH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top+pH);    ctx.lineTo(PAD.left+pW, PAD.top+pH); ctx.stroke();
+
+  // Tick labels
+  ctx.fillStyle = '#505050';
+  ctx.font = '10px system-ui, sans-serif';
+  for (let i = 0; i <= 5; i++) {
+    const lbl = (i*0.2).toFixed(1);
+    ctx.textAlign = 'center'; ctx.fillText(lbl, cx(i*0.2), PAD.top+pH+14);
+    ctx.textAlign = 'right';  ctx.fillText(lbl, PAD.left-5, cy(i*0.2)+3);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#707070';
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Danceability', PAD.left + pW/2, H-6);
+  ctx.save();
+  ctx.translate(13, PAD.top + pH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('Valence', 0, 0);
+  ctx.restore();
+
+  // Scatter points
+  const pts = lrScatterPoints.length ? lrScatterPoints : generateLRMockPoints(350);
+  ctx.fillStyle = 'rgba(29,185,84,0.28)';
+  for (const p of pts) {
+    ctx.beginPath(); ctx.arc(cx(p.danceability), cy(p.valence), 2.5, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Regression line (varies danceability; other features held at current slider values)
+  const offset = LR_COEFFS.intercept + LR_COEFFS.energy * energy + LR_COEFFS.acousticness * acoustic;
+  ctx.strokeStyle = '#1db954';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx(0), cy(Math.max(-0.2, Math.min(1.2, offset))));
+  ctx.lineTo(cx(1), cy(Math.max(-0.2, Math.min(1.2, offset + LR_COEFFS.danceability))));
+  ctx.stroke();
+
+  // Prediction marker
+  const pred = calcLRPrediction(dance, energy, acoustic);
+  const mpx  = cx(dance);
+  const mpy  = cy(Math.max(0, Math.min(1, pred)));
+
+  // Guide lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(mpx, mpy); ctx.lineTo(mpx, PAD.top+pH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(mpx, mpy); ctx.lineTo(PAD.left, mpy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dot
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1db954'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(mpx, mpy, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#1db954';
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(pred.toFixed(2), mpx, mpy - 12);
+}
+
+
+/* ══════════════════════════════════════════
+   10. FIND SIMILAR SONGS
 ══════════════════════════════════════════ */
 
 // Max possible Euclidean distance across the 6 normalized features (each diff = 1)
@@ -1612,8 +1828,9 @@ function onPageEnter(pageId) {
     if (corrNeedsRefresh || !document.getElementById('corr-chart').children.length) renderCorrChart();
     else initCorrelationChart();
   }
-  if (pageId === 'forest')          initForestChart();
-  if (pageId === 'forest-explorer') initForestExplorer();
+  if (pageId === 'linear-regression') initLinearRegression();
+  if (pageId === 'forest')            initForestChart();
+  if (pageId === 'forest-explorer')   initForestExplorer();
   if (pageId === 'kmeans')          initKmeans();
   if (pageId === 'recommendation')  initRecommendation();
   if (pageId === 'similar-songs')   initSimilarSongs();

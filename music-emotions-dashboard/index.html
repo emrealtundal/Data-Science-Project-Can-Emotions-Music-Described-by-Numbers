@@ -21,14 +21,17 @@
       <a href="#" class="nav-item" data-page="correlation">
         <span class="nav-icon">⟷</span> Correlation Explorer
       </a>
+      <a href="#" class="nav-item" data-page="linear-regression">
+        <span class="nav-icon">↗</span> Linear Regression
+      </a>
       <a href="#" class="nav-item" data-page="forest">
         <span class="nav-icon">⧉</span> Random Forest Insights
       </a>
-      <a href="#" class="nav-item" data-page="kmeans">
-        <span class="nav-icon">◎</span> K-Means Visualization
-      </a>
       <a href="#" class="nav-item" data-page="forest-explorer">
         <span class="nav-icon">⊞</span> RF Explorer
+      </a>
+      <a href="#" class="nav-item" data-page="kmeans">
+        <span class="nav-icon">◎</span> K-Means Visualization
       </a>
       <a href="#" class="nav-item" data-page="recommendation">
         <span class="nav-icon">♪</span> Recommendation Demo
@@ -232,6 +235,145 @@
           to contribute to a predictive model. This guided feature selection for both Linear Regression
           and Random Forest models.
         </p>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════
+         PAGE: Linear Regression Playground
+    ════════════════════════════════════ -->
+    <section class="page" id="page-linear-regression">
+      <div class="page-header">
+        <h1>Linear Regression Playground</h1>
+        <p class="page-subtitle">Understand how Linear Regression predicts music valence — interactively</p>
+      </div>
+
+      <!-- Scatter plot + sliders -->
+      <div class="card">
+        <h2 class="card-title">Interactive Regression Explorer</h2>
+        <p class="body-text" style="margin-bottom:16px">
+          Each point is a song from the dataset. The <span style="color:var(--green);font-weight:600">green line</span> is
+          the <strong>best-fit regression line</strong> — it minimizes the sum of squared distances from every point to the line.
+          Move the sliders to see how changing feature values shifts the prediction.
+        </p>
+        <div class="lr-main-layout">
+          <div class="lr-plot-wrap">
+            <canvas id="lr-canvas" width="480" height="300"></canvas>
+          </div>
+          <div class="lr-controls">
+            <div class="lr-pred-card">
+              <div class="lr-pred-label">Predicted Valence</div>
+              <div class="lr-pred-value" id="lr-pred-value">0.56</div>
+            </div>
+            <div class="lr-slider-group">
+              <div class="lr-slider-row">
+                <div class="lr-slider-header">
+                  <span class="lr-slider-name" style="color:var(--green)">Danceability</span>
+                  <span class="lr-slider-val" id="lr-dance-val">0.50</span>
+                </div>
+                <input type="range" class="lr-slider lr-slider-green" id="lr-dance" min="0" max="1" step="0.01" value="0.5"/>
+                <div class="lr-slider-coeff" style="color:var(--green)">coefficient: +0.55</div>
+              </div>
+              <div class="lr-slider-row">
+                <div class="lr-slider-header">
+                  <span class="lr-slider-name" style="color:var(--yellow)">Energy</span>
+                  <span class="lr-slider-val" id="lr-energy-val">0.50</span>
+                </div>
+                <input type="range" class="lr-slider lr-slider-yellow" id="lr-energy" min="0" max="1" step="0.01" value="0.5"/>
+                <div class="lr-slider-coeff" style="color:var(--yellow)">coefficient: +0.22</div>
+              </div>
+              <div class="lr-slider-row">
+                <div class="lr-slider-header">
+                  <span class="lr-slider-name" style="color:var(--red)">Acousticness</span>
+                  <span class="lr-slider-val" id="lr-acoustic-val">0.50</span>
+                </div>
+                <input type="range" class="lr-slider lr-slider-red" id="lr-acoustic" min="0" max="1" step="0.01" value="0.5"/>
+                <div class="lr-slider-coeff" style="color:var(--red)">coefficient: −0.08</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equation card -->
+      <div class="card">
+        <h2 class="card-title">The Regression Equation</h2>
+        <div class="lr-equation-card">
+          <div class="lr-eq-top">Predicted Valence =</div>
+          <div class="lr-eq-body">
+            <span class="lr-eq-term">0.12</span>
+            <span class="lr-eq-op">+</span>
+            <span class="lr-eq-term" style="color:var(--green)">0.55 × Danceability</span>
+            <span class="lr-eq-op">+</span>
+            <span class="lr-eq-term" style="color:var(--yellow)">0.22 × Energy</span>
+            <span class="lr-eq-op" style="color:var(--red)">−</span>
+            <span class="lr-eq-term" style="color:var(--red)">0.08 × Acousticness</span>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px">
+          <div class="insight-box green" style="flex:1;margin-bottom:0">
+            <div class="insight-title">Positive coefficient</div>
+            <p>Increasing this feature <strong>raises</strong> the predicted valence.
+               Danceability (+0.55) has the strongest positive effect in this model.</p>
+          </div>
+          <div class="insight-box gray" style="flex:1;margin-bottom:0">
+            <div class="insight-title">Negative coefficient</div>
+            <p>Increasing this feature <strong>lowers</strong> the predicted valence.
+               Acoustic songs tend to be calmer and less euphoric on average.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contribution breakdown -->
+      <div class="card">
+        <h2 class="card-title">Contribution Breakdown</h2>
+        <p class="body-text" style="margin-bottom:16px">
+          The final prediction is the <em>sum</em> of every term. Each bar shows how much that
+          feature (at its current slider value) pushes the prediction up or down.
+        </p>
+        <div id="lr-contrib-chart" class="lr-contrib-chart"></div>
+        <div class="lr-total-row">
+          <span class="lr-total-label">Total Predicted Valence</span>
+          <span class="lr-total-value" id="lr-total-display">0.56</span>
+        </div>
+      </div>
+
+      <!-- Explanation + RF transition -->
+      <div class="card">
+        <h2 class="card-title">How Linear Regression Works</h2>
+        <p class="body-text">
+          Linear Regression fits a straight line (or hyperplane in multiple dimensions) through the data.
+          It learns a <strong>coefficient</strong> for each feature — a number representing how strongly that
+          feature influences the prediction. Training minimizes the sum of squared errors between
+          model predictions and the actual values in the training data.
+        </p>
+        <div class="callout" style="margin-top:16px">
+          <strong>In this project:</strong> Linear Regression achieved R² = 0.41 — it explains 41% of the
+          variance in song valence. That means 59% of the variation is driven by non-linear interactions
+          that a straight-line model cannot capture.
+        </div>
+
+        <div class="lr-transition-box">
+          <h3 class="lr-transition-title">Why Random Forest?</h3>
+          <p>Linear Regression can only learn straight-line relationships between features and target.</p>
+          <p style="margin-top:8px">Music emotion is not linear — the <em>combination</em> of high Energy
+             <em>and</em> high Danceability together predicts happiness far better than either feature alone.
+             Random Forest captures these non-linear interactions by building many decision trees and averaging
+             their predictions.</p>
+          <div class="lr-compare-row">
+            <div class="lr-model-chip lr-model-lr">
+              <div class="lr-chip-label">Linear Regression</div>
+              <div class="lr-chip-r2">R² = 0.41</div>
+            </div>
+            <div class="lr-arrow">→</div>
+            <div class="lr-model-chip lr-model-rf">
+              <div class="lr-chip-label">Random Forest</div>
+              <div class="lr-chip-r2" style="color:var(--green)">R² = 0.67</div>
+            </div>
+            <button class="btn btn-primary lr-explore-btn" id="lr-goto-rf">
+              Explore Random Forest →
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
